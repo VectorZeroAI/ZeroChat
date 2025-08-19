@@ -46,7 +46,32 @@ ZeroContextMemory.py
 
 Each user messenge gets stored here, and gets the metadata "User". The reply of the AI is also stored, and is connected to its corresponding prompt via edge. Then, the User inputs are interconnected if the similarity is more then n%, and the AI replies are interconected if the similarity is more then n%.
 
-The decay mechanic:
 
-Each memory also gets a Time To Tive number asigned when inputed into the context memory. 
+The decay funktion:
+
+Each memory also gets a Time To Live number asigned when inputed into the context memory.
+The TTL is the "current internal clock time + 10".
+
+Each time a user sends a messenge to the AI, the Internal Clock advanses by 1. 
+
+Each memory also gets a timestamp in the internal units time. 
+
+Each time a memory is retrieved, its TTL is increased by 2. 
+
+When a threashhold for the memory size is hit, all the memories that have the TTL smaler then the current internal clock time are deleted.
+
+
+The retreaval funktion:
+
+When a users messenge is recived, 3 most similar user messenges are retrieved with their corresponding AI answer. 
+
+And 
+
+When a users messenge is recieved, 3 of the newest memories are retrieved too. 
+
+
+Notes:
+
+A memory is user messenge and its corresponding reply.
+
 
