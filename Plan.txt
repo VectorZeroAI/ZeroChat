@@ -1,0 +1,7 @@
+Plan for this Part of the projekt is:
+
+Create the baseline.
+
+# Create config.py file that encompases all the cofigurations.
+# Create the baseline Chatloop.
+# Create the contents insert mechanic.
