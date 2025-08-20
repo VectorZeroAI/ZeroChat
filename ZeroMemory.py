@@ -1,6 +1,6 @@
 """
-This Version only has the Identity scafolding.
-later versions will add more and more to the funktionality.
+This VFile is the high orchestrator of all the memory parts, bringing them all together into the "full" funktion.
+It still doesnt have actuall memory funktions, and will get constantly updated with each new memory part added.
 """
 from ZeroIndentity import indentity
 
