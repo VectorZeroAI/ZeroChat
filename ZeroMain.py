@@ -5,7 +5,7 @@ It can be run for CLI I/O, or the GUI can use it as backend.
 Is fully config defined, so if its not working, first thing to check is the config.py file.
 """
 
-import memory
+import ZeroMemory
 import requests
 import json
 from config import LLM_SOURSE, OPENROUTER_API_KEY, LOCAL_MODEL_PATH, GEMINI_API_KEY
@@ -20,7 +20,7 @@ def call_LLM(prompt: str) -> str:
             "Content-Type": "application/json",
         }
         data = {
-            "model": "openai/gpt-4o-mini",  # or whatever model you pick in config
+            "model": "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
             "messages": [{"role": "user", "content": prompt}],
         }
         r = requests.post(url, headers=headers, json=data)
