@@ -1,6 +1,6 @@
 """
-A placeholder for now
-Later is gonna be expanded into the most important part of the Application.
+This Version only has the Identity scafolding.
+later versions will add more and more to the funktionality.
 """
 from ZeroIndentity import indentity
 
