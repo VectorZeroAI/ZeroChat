@@ -5,7 +5,7 @@ It can be run for CLI I/O, or the GUI can use it as backend.
 Is fully config defined, so if its not working, first thing to check is the config.py file.
 """
 
-import ZeroMemory
+from ZeroMemory import memory
 import requests
 import json
 from config import LLM_SOURSE, OPENROUTER_API_KEY, LOCAL_MODEL_PATH, GEMINI_API_KEY
