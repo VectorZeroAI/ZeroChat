@@ -65,5 +65,5 @@ if __name__ == "__main__":
         user_in = input("You: ")
         if user_in.lower() in ["exit", "quit"]:
             break
-        reply = call_LLM(user_in)
+        reply = call_LLM_with_memory(user_in)
         print("AI:", reply)
