@@ -134,7 +134,8 @@ def embed_identity_to_chromadb(structured_identity: dict, chroma_client, collect
     """
     logger.info("Starting embedding process for identity data...")
     # Initialize sentence transformer model for embeddings
-    sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
+    # Note: The embedding function is set on the collection, so we don't need to instantiate it here
+    # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
 
     documents = []
     metadatas = []
@@ -164,6 +165,7 @@ def embed_identity_to_chromadb(structured_identity: dict, chroma_client, collect
 
     if documents:
         # Add documents to the ChromaDB collection
+        # The collection's embedding function will automatically embed the 'documents'
         collection.add(
             documents=documents,
             metadatas=metadatas,
@@ -193,10 +195,11 @@ class IdentityMemory:
             # Persistent client
             self.client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
             # Get or create the collection
+            # Define the embedding function for this collection
+            embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
             self.collection = self.client.get_or_create_collection(
                 name=CHROMA_COLLECTION_NAME,
-                # Define the embedding function for this collection
-                embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
+                embedding_function=embedding_func
             )
             logger.info("ChromaDB client and collection initialized.")
         except Exception as e:
@@ -230,6 +233,7 @@ class IdentityMemory:
 
         try:
             # Query ChromaDB for the document with the matching anchor metadata
+            # Using `get` with `where` is appropriate for exact metadata matches
             results = self.collection.get(
                 # Filter by metadata to get the specific anchor
                 where={"anchor": theme},
@@ -245,11 +249,11 @@ class IdentityMemory:
                 return retrieved_text
             else:
                 logger.info(f"No identity information found for theme '{theme}'.")
-                return f"[No specific identity information found for '{theme}']"
+                return "" # Return empty string if not found, as per original description logic
 
         except Exception as e:
             logger.error(f"Error retrieving identity for theme '{theme}': {e}")
-            return f"[Error retrieving identity for '{theme}']"
+            return "" # Return empty string on error
 
 
 # --- Initialize Identity at Module Load ---
@@ -272,4 +276,4 @@ if __name__ == "__main__":
     print(f"Retrieved Politics Identity Info:\n{politics_info}\n---")
     # Example: Retrieve non-existent theme
     unknown_info = identity_instance.retrieve("hobbies")
-    print(f"Retrieved Unknown Theme Info:\n{unknown_info}\n---")
+    print(f"Retrieved Unknown Theme Info:\n'{unknown_info}'\n---")
