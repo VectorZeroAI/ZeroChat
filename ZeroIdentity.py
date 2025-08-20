@@ -22,29 +22,27 @@ example:
   }
 }
 
-The json inputs are then embedded into chromaDB in this way:
+The json inputs are then embedded into Weaviate in this way:
 The titles (e.g. global, politics) are anchors, and the contents are the embeddings connected to them.
 When the identity information is retrieved, everything connected to the node "global" is retrieved,
 and if theme is provided, everything connected to that theme is retrieved too.
 
 This module handles reading the Identity.txt, converting it via LLM, structuring the data,
-and preparing it for embedding into ChromaDB. The actual ChromaDB interaction is handled
-conceptually here, requiring chromadb and sentence-transformers libraries.
+and preparing it for embedding into Weaviate. The actual Weaviate interaction is handled
+conceptually here, requiring weaviate-client and sentence-transformers libraries.
 """
 
 from config import LLM_SOURSE, OPENROUTER_API_KEY, LOCAL_MODEL_PATH, GEMINI_API_KEY
 import os
 import json
 import logging
-# Assuming call_LLM is refactored to be importable from ZeroMain
-# This might require moving it to a shared utils file or adjusting ZeroMain.py structure
-import chromadb
-from chromadb.utils import embedding_functions
+import weaviate
+from weaviate.embedded import EmbeddedOptions
+import requests
 
 # --- Configuration ---
 IDENTITY_FILE_PATH = "Identity.txt"
-CHROMA_DB_PATH = "./chroma_db_identity" # Local directory for ChromaDB persistence
-CHROMA_COLLECTION_NAME = "identity_embeddings"
+WEAVIATE_CLASS_NAME = "Identity"
 # Using a Sentence Transformer model for embeddings
 EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2'
 # ---------------------
@@ -161,53 +159,82 @@ def convert_identity_to_json(raw_identity_text: str) -> dict:
         raise ValueError("LLM did not return valid JSON for identity.") from e
 
 
-def embed_identity_to_chromadb(structured_identity: dict, chroma_client, collection):
+def embed_identity_to_weaviate(structured_identity: dict, client):
     """
-    Embeds the structured identity data into ChromaDB.
+    Embeds the structured identity data into Weaviate.
     Each top-level key is an anchor, and its value is embedded and stored.
     """
     logger.info("Starting embedding process for identity data...")
-    # Initialize sentence transformer model for embeddings
-    # Note: The embedding function is set on the collection, so we don't need to instantiate it here
-    # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
+    
+    # Create the class schema if it doesn't exist
+    class_obj = {
+        "class": WEAVIATE_CLASS_NAME,
+        "vectorizer": "none",  # We'll provide our own vectors
+        "properties": [
+            {
+                "name": "anchor",
+                "dataType": ["string"],
+            },
+            {
+                "name": "content",
+                "dataType": ["text"],
+            }
+        ]
+    }
+    
+    if not client.schema.exists(WEAVIATE_CLASS_NAME):
+        client.schema.create_class(class_obj)
+        logger.info(f"Weaviate class '{WEAVIATE_CLASS_NAME}' created.")
 
-    documents = []
-    metadatas = []
-    ids = []
-
+    # Process each anchor-content pair
     for anchor, content in structured_identity.items():
         # Create a textual representation of the content for embedding
-        # If it's a list, join items. If it's a dict, stringify it or process further.
         if isinstance(content, list):
-            # Join list items into a single string for embedding
             text_to_embed = "; ".join(content)
         elif isinstance(content, dict):
-            # For nested dicts, could serialize or extract specific parts.
-            # Simple string representation for now.
             text_to_embed = json.dumps(content)
         else:
-            # For strings or other primitives
             text_to_embed = str(content)
 
-        # Prepare data for ChromaDB
-        doc_id = f"identity_{anchor}" # Unique ID for this anchor
-        documents.append(text_to_embed)
-        metadatas.append({"anchor": anchor}) # Store the anchor as metadata
-        ids.append(doc_id)
+        # Generate embedding using sentence transformers
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        embedding = model.encode(text_to_embed).tolist()
 
-        logger.info(f"Prepared anchor '{anchor}' for embedding.")
+        # Prepare data for Weaviate
+        data_object = {
+            "anchor": anchor,
+            "content": text_to_embed
+        }
 
-    if documents:
-        # Add documents to the ChromaDB collection
-        # The collection's embedding function will automatically embed the 'documents'
-        collection.add(
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
-        )
-        logger.info("Identity data successfully embedded into ChromaDB.")
-    else:
-        logger.warning("No identity data found to embed.")
+        # Check if object already exists
+        existing = client.query.get(WEAVIATE_CLASS_NAME, ["anchor"]) \
+            .with_where({
+                "path": ["anchor"],
+                "operator": "Equal",
+                "valueString": anchor
+            }).do()
+        
+        if existing['data']['Get'][WEAVIATE_CLASS_NAME]:
+            # Update existing object
+            uuid = existing['data']['Get'][WEAVIATE_CLASS_NAME][0]['_additional']['id']
+            client.data_object.update(
+                data_object=data_object,
+                class_name=WEAVIATE_CLASS_NAME,
+                uuid=uuid,
+                vector=embedding
+            )
+            logger.info(f"Updated anchor '{anchor}' in Weaviate.")
+        else:
+            # Create new object
+            client.data_object.create(
+                data_object=data_object,
+                class_name=WEAVIATE_CLASS_NAME,
+                vector=embedding
+            )
+            logger.info(f"Created anchor '{anchor}' in Weaviate.")
+
+    logger.info("Identity data successfully embedded into Weaviate.")
 
 
 # --- Main Identity Class ---
@@ -219,25 +246,19 @@ class IdentityMemory:
         """Initializes the IdentityMemory by loading and embedding the identity."""
         logger.info("Initializing IdentityMemory...")
         self.client = None
-        self.collection = None
-        self._setup_chromadb()
+        self._setup_weaviate()
         self._load_and_process_identity()
 
-    def _setup_chromadb(self):
-        """Sets up the ChromaDB client and collection."""
+    def _setup_weaviate(self):
+        """Sets up the Weaviate client."""
         try:
-            # Persistent client
-            self.client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-            # Get or create the collection
-            # Define the embedding function for this collection
-            embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
-            self.collection = self.client.get_or_create_collection(
-                name=CHROMA_COLLECTION_NAME,
-                embedding_function=embedding_func
+            # Using embedded Weaviate for local development
+            self.client = weaviate.Client(
+                embedded_options=EmbeddedOptions()
             )
-            logger.info("ChromaDB client and collection initialized.")
+            logger.info("Weaviate client initialized.")
         except Exception as e:
-            logger.error(f"Failed to initialize ChromaDB: {e}")
+            logger.error(f"Failed to initialize Weaviate: {e}")
             raise
 
     def _load_and_process_identity(self):
@@ -245,7 +266,7 @@ class IdentityMemory:
         try:
             raw_text = read_identity_file(IDENTITY_FILE_PATH)
             structured_data = convert_identity_to_json(raw_text)
-            embed_identity_to_chromadb(structured_data, self.client, self.collection)
+            embed_identity_to_weaviate(structured_data, self.client)
             logger.info("Identity processing and embedding complete.")
         except FileNotFoundError:
             logger.warning("Identity file not found. Identity memory will be empty.")
@@ -261,33 +282,32 @@ class IdentityMemory:
         Defaults to retrieving 'global' identity information.
         Returns a string representation of the retrieved data.
         """
-        if not self.collection:
-            logger.warning("Identity memory (ChromaDB collection) not initialized.")
+        if not self.client:
+            logger.warning("Identity memory (Weaviate client) not initialized.")
             return ""
 
         try:
-            # Query ChromaDB for the document with the matching anchor metadata
-            # Using `get` with `where` is appropriate for exact metadata matches
-            results = self.collection.get(
-                # Filter by metadata to get the specific anchor
-                where={"anchor": theme},
-                # We expect only one document per anchor
-                limit=1
-            )
+            # Query Weaviate for the document with the matching anchor
+            result = self.client.query.get(WEAVIATE_CLASS_NAME, ["content"]) \
+                .with_where({
+                    "path": ["anchor"],
+                    "operator": "Equal",
+                    "valueString": theme
+                }) \
+                .with_limit(1) \
+                .do()
 
-            if results['ids'] and len(results['ids']) > 0:
-                # Assuming one result per anchor, get the first document
-                # The 'documents' list contains the original text that was embedded
-                retrieved_text = results['documents'][0]
+            if result['data']['Get'][WEAVIATE_CLASS_NAME]:
+                retrieved_text = result['data']['Get'][WEAVIATE_CLASS_NAME][0]['content']
                 logger.info(f"Retrieved identity information for theme '{theme}'.")
                 return retrieved_text
             else:
                 logger.info(f"No identity information found for theme '{theme}'.")
-                return "" # Return empty string if not found, as per original description logic
+                return ""
 
         except Exception as e:
             logger.error(f"Error retrieving identity for theme '{theme}': {e}")
-            return "" # Return empty string on error
+            return ""
 
 
 # --- Initialize Identity at Module Load ---
