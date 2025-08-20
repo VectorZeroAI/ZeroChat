@@ -1,16 +1,22 @@
-#zeroMemory.py
+# ZeroMemory.py
 """
-This VFile is the high orchestrator of all the memory parts, bringing them all together into the "full" funktion.
-It still doesnt have actuall memory funktions, and will get constantly updated with each new memory part added.
+This File is the high orchestrator of all the memory parts, bringing them all together into the "full" function.
+It still doesnt have actual memory functions, and will get constantly updated with each new memory part added.
 """
-from ZeroIndentity import indentity
 
-class memory:
+from ZeroIdentity import indentity
+# Import other memory parts as they are added
+
+class Memory:
     def __init__(self):
-        self.memory = None
-        self.querrie = None
+        pass
 
-    def full(self):
-        
+    def full(self, query: str) -> str:
+        # Retrieve identity context, defaulting to 'global'
+        identity_context = indentity.retrieve("global")
+        # Add logic here to combine with other memory types as they are added
+        # For now, just return identity context
+        return identity_context
 
-        return self.memory
+# Create an instance to be used
+memory = Memory()
