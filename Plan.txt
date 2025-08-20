@@ -1,7 +1,6 @@
 Plan for this Part of the projekt is:
 
-Create the baseline.
+Create the Identity.
 
-# Create config.py file that encompases all the cofigurations.
-# Create the baseline Chatloop.
-# Create the contents insert mechanic.
+Create the basic identity funktion:
+read a identity.txt file, transfrom to json via LLM, then embedd into ChromaDB and use that.
