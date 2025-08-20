@@ -32,12 +32,12 @@ and preparing it for embedding into ChromaDB. The actual ChromaDB interaction is
 conceptually here, requiring chromadb and sentence-transformers libraries.
 """
 
+from config import LLM_SOURSE, OPENROUTER_API_KEY, LOCAL_MODEL_PATH, GEMINI_API_KEY
 import os
 import json
 import logging
 # Assuming call_LLM is refactored to be importable from ZeroMain
 # This might require moving it to a shared utils file or adjusting ZeroMain.py structure
-from ZeroMain import call_LLM
 import chromadb
 from chromadb.utils import embedding_functions
 
@@ -54,6 +54,40 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # --- Helper Functions ---
+
+def call_LLM(prompt: str) -> str:
+    if LLM_SOURSE == "OPENROUTER":
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "model": "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        r = requests.post(url, headers=headers, json=data)
+        r.raise_for_status()
+        return r.json()["choices"][0]["message"]["content"]
+
+    elif LLM_SOURSE == "LOCAL":
+        # HuggingFace transformers local pipeline
+        from transformers import pipeline
+        local_llm = pipeline("text-generation", model=LOCAL_MODEL_PATH)
+        result = local_llm(prompt, max_length=512, do_sample=True, temperature=0.7)
+        return result[0]["generated_text"]
+
+    elif LLM_SOURSE == "GEMINI":
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel("gemini-1.5-pro")
+        response = model.generate_content(prompt)
+        return response.text
+
+    else:
+        raise ValueError("Invalid config: LLM_SOURSE not recognized.")
+
+
 
 def read_identity_file(filepath: str) -> str:
     """Reads the raw identity text from Identity.txt."""
