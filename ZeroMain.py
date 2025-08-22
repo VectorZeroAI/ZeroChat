@@ -5,10 +5,17 @@ It can be run for CLI I/O, or the GUI can use it as backend.
 Is fully config defined, so if its not working, first thing to check is the config.py file.
 """
 
-from ZeroMemory import memory
+import sys
+import os
+
+current_dir = os.getcwd()     #hate this shit! 
+sys.path.insert(0, current_dir)   #but it doesnt work without it for some reason. 
+#No clue here ...
+
 import requests
 import json
 from config import LLM_SOURSE, OPENROUTER_API_KEY, LOCAL_MODEL_PATH, GEMINI_API_KEY
+from ZeroMemory import memory
 
 # LLM CALLS
 
