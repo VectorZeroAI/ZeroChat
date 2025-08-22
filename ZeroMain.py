@@ -4,21 +4,15 @@ This is the main chatloop of the app.
 It can be run for CLI I/O, or the GUI can use it as backend.
 Is fully config defined, so if its not working, first thing to check is the config.py file.
 """
-
-import sys
-import os
-
-current_dir = os.getcwd()     #hate this shit! 
-sys.path.insert(0, current_dir)   #but it doesnt work without it for some reason. 
-#No clue here ...
-
+from ZeroMemory import memory as MemoryClass
 import requests
 import json
 from config import LLM_SOURSE, OPENROUTER_API_KEY, LOCAL_MODEL_PATH, GEMINI_API_KEY
-from ZeroMemory import memory
+
+# Initialize memory system
+mem = MemoryClass()
 
 # LLM CALLS
-
 def call_LLM(prompt: str) -> str:
     if LLM_SOURSE == "OPENROUTER":
         url = "https://openrouter.ai/api/v1/chat/completions"
@@ -33,35 +27,30 @@ def call_LLM(prompt: str) -> str:
         r = requests.post(url, headers=headers, json=data)
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"]
-
     elif LLM_SOURSE == "LOCAL":
         # HuggingFace transformers local pipeline
         from transformers import pipeline
         local_llm = pipeline("text-generation", model=LOCAL_MODEL_PATH)
         result = local_llm(prompt, max_length=512, do_sample=True, temperature=0.7)
         return result[0]["generated_text"]
-
     elif LLM_SOURSE == "GEMINI":
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel("gemini-1.5-pro")
         response = model.generate_content(prompt)
         return response.text
-
     else:
         raise ValueError("Invalid config: LLM_SOURSE not recognized.")
-
 
 def call_LLM_with_memory(prompt: str) -> str:
     """
     Memory-augmented LLM call.
-    memory.full(prompt) gives related context WITHOUT the prompt itself.
+    mem.full(prompt) gives related context WITHOUT the prompt itself.
     We need to combine both.
     """
-    mem_context = memory.full(prompt)
-    full_input = f"Context:\n{mem_context}\n\nUser Prompt:\n{prompt}"
+    mem_context = mem.full(prompt)
+    full_input = f"{mem_context}\n\nCurrent Conversation:\nUser: {prompt}\nAI: "
     return call_LLM(full_input)
-
 
 # ------------------------
 # MAIN CHATLOOP
@@ -72,5 +61,12 @@ if __name__ == "__main__":
         user_in = input("You: ")
         if user_in.lower() in ["exit", "quit"]:
             break
+        
+        # Get AI response with memory context (current prompt not in memory yet)
         reply = call_LLM_with_memory(user_in)
+        
+        # Add the conversation to memory
+        interaction_id = mem.add_user_prompt(user_in)
+        mem.add_ai_response(reply, interaction_id)
+        
         print("AI:", reply)
