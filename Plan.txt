@@ -1,6 +1,9 @@
 Plan for this Part of the projekt is:
 
-Create the Identity.
+Create the Context system:
 
-Create the basic identity funktion:
-read a identity.txt file, transfrom to json via LLM, then embedd into ChromaDB and use that.
+1. Create a ChromaDB
+2. Embedd evey user prompt into the ChromaDB with metadata "type = user"
+3. Embedd every AIs response with metadata "type = AI"
+4. Connect the AIs response to the corresponding user prompt.
+5. Add the retrieval of 2 most similar user prompts and their responses into the call_LLM-with_memory funktion.
