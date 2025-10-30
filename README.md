@@ -7,13 +7,13 @@ An AI companion that has human like memory, understands, remembers and knows you
 
 ---
 
-ZeroMain.py 
+## ZeroMain.py 
 
 The main loop: loads the LLM, sends the messenge, gets the result. 
 
 ---
 
-ZeroIdentityCloud.py
+## ZeroIdentityCloud.py
 
 Is the ChromaDB identity clouds Vector Space.
 
@@ -28,7 +28,7 @@ Themed are the preferenses that affect only a theme, and they are connected to t
 
 ---
 
-ZeroInformationCluster.py
+## ZeroInformationCluster.py
 
 Stores all the facts, raw facts, connected to each other via similarity edges.
 
@@ -36,18 +36,30 @@ Search happenes via getting all the facts that have a greater similarity to the 
 
 ---
 
-ZeroUserData.py
+## ZeroUserData.py
 
 Stores all the facts about user that the user told about. These are then grouped by importanse, and retrieved ether by similarity or by importanse. 
 
 ---
 
-ZeroContextMemory.py
+## ZeroContextMemory.py
 
-Each user messenge gets stored here, and gets the metadata "User". The reply of the AI is also stored, and is connected to its corresponding prompt via edge. Then, the User inputs are interconnected if the similarity is more then n%, and the AI replies are interconected if the similarity is more then n%.
+A context memery module using LanceDB. 
 
+The colums layout is as following: 
 
-The decay funktion:
+1. ID (UUID)
+2. Text (TEXT)
+3. Embedding 
+4. Metadata (TEXT)
+5. Connections (TEXT)
+
+Each user messenge gets stored here, and gets the metadata "User". The reply of the AI is also stored, and is connected to its corresponding prompt via edge. Then, the User inputs are interconnected if the similarity is more then n%, and the AI replies are interconected if the similarity is more then n%
+
+Connections are links by ID.
+Metadata stores the time of creation, TTL, and all the other values. 
+
+### The decay funktion:
 
 Each memory also gets a Time To Live number asigned when inputed into the context memory.
 The TTL is the "current internal clock time + 10".
@@ -61,7 +73,7 @@ Each time a memory is retrieved, its TTL is increased by 2.
 When a threashhold for the memory size is hit, all the memories that have the TTL smaler then the current internal clock time are deleted.
 
 
-The retreaval funktion:
+### The retreaval funktion:
 
 When a users messenge is recived, 3 most similar user messenges are retrieved with their corresponding AI answer. 
 
@@ -70,9 +82,8 @@ And
 When a users messenge is recieved, 3 of the newest memories are retrieved too. 
 
 
-Notes:
-
-A memory is user messenge and its corresponding reply.
+*Clarification:*
+*A memory is user messenge and its corresponding reply.*
 
 
 ---
