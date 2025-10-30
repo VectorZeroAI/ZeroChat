@@ -50,7 +50,7 @@ The colums layout is as following:
 
 1. ID (UUID)
 2. Text (TEXT)
-3. Embedding 
+3. Embedding
 4. Metadata (dict)
 5. Connections (dict)
 
@@ -88,4 +88,4 @@ When a users messenge is recieved, 3 of the newest memories are retrieved too.
 
 ---
 
-This prototype should only have ZeroContextMemory.py and the core loop. Everything else will be added in the next versions. 
+This prototype should only have ZeroContextMemory.py and the core loop.
