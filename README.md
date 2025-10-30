@@ -51,8 +51,8 @@ The colums layout is as following:
 1. ID (UUID)
 2. Text (TEXT)
 3. Embedding 
-4. Metadata (TEXT)
-5. Connections (TEXT)
+4. Metadata (dict)
+5. Connections (dict)
 
 Each user messenge gets stored here, and gets the metadata "User". The reply of the AI is also stored, and is connected to its corresponding prompt via edge. Then, the User inputs are interconnected if the similarity is more then n%, and the AI replies are interconected if the similarity is more then n%
 
