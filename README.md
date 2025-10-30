@@ -75,3 +75,6 @@ Notes:
 A memory is user messenge and its corresponding reply.
 
 
+---
+
+This prototype should only have ZeroContextMemory.py and the core loop. Everything else will be added in the next versions. 
