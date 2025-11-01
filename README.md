@@ -5,6 +5,14 @@ An AI companion that has human like memory, understands, remembers and knows you
 
 # Architecture:
 
+
+## Note:
+*All the modules follow this API shema: {modulename}.update(messenge, type) and {modulename}.get(user_messenge)*
+*type can be ether ai or user.*
+*the get method provides the information taht should be recalled when answering the messnge of the user, effectively providing memory.*
+*the update method is used to provide new entries to the modules database/backend.*
+*This ensures taht modules can be effortlessly plugged into a different system with no complications.*
+
 ---
 
 ## ZeroMain.py 
@@ -26,6 +34,8 @@ Themed
 The global ones are the preferenses that affect all the desisions and answers.
 Themed are the preferenses that affect only a theme, and they are connected to the theme anchor. A preferense can be connected to multiple themes. 
 
+ChromaDB is used because the character traits amount tend to get exponentially bigger the more "realistic" the character becomes. 
+
 ---
 
 ## ZeroInformationCluster.py
@@ -34,11 +44,28 @@ Stores all the facts, raw facts, connected to each other via similarity edges.
 
 Search happenes via getting all the facts that have a greater similarity to the querrie then n%, and then getting the greater then n% similarity for each one of them, and so on for j times. (actual numbers need some testing)
 
+The storage backend is lanceDB with the following table layout: 
+
+1. ID (UUID)
+2. Text
+3. Embedding
+4. Metadata (json)
+5. Connections (list)
+
+The connections are just UUIDs of the different "facts" stored in the backend. 
+
 ---
 
 ## ZeroUserData.py
 
 Stores all the facts about user that the user told about. These are then grouped by importanse, and retrieved ether by similarity or by importanse. 
+
+Backend: LanceDB with the following layout: 
+
+1. ID (UUID)
+2. Text 
+3. Embedding
+4. Metadata
 
 ---
 
@@ -51,13 +78,16 @@ The colums layout is as following:
 1. ID (UUID)
 2. Text (TEXT)
 3. Embedding
-4. Metadata (dict)
-5. Connections (dict)
+5. Connections (list)
+6. Creation_time (integer) # internal timer
+7. TTL (integer) # in the internal time 
+8. Type (Binary) # 1 = AI, 0 = user.
 
-Each user messenge gets stored here, and gets the metadata "User". The reply of the AI is also stored, and is connected to its corresponding prompt via edge. Then, the User inputs are interconnected if the similarity is more then n%, and the AI replies are interconected if the similarity is more then n%
+Each user messenge gets stored here, and gets the type "User". The reply of the AI is also stored, and is connected to its corresponding prompt via edge. Then, the User inputs are interconnected if the similarity is more then n%, and the AI replies are interconected if the similarity is more then n% .
 
-Connections are links by ID.
-Metadata stores the time of creation, TTL, and all the other values. 
+The Ais messenge and User reply get stored in searate entries, connected via the Connections method.  (adding the UUID of the Users messenge to the list in connections. )
+
+Connections are links by ID. 
 
 ### The decay funktion:
 
