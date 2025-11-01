@@ -89,3 +89,5 @@ When a users messenge is recieved, 3 of the newest memories are retrieved too.
 ---
 
 This prototype should only have ZeroContextMemory.py and the core loop.
+
+The LLM provider is operouter for now, with Gemini integration planned later on. 
