@@ -121,3 +121,34 @@ When a users messenge is recieved, 3 of the newest memories are retrieved too.
 This prototype should only have ZeroContextMemory.py and the core loop.
 
 The LLM provider is operouter for now, with Gemini integration planned later on. 
+
+
+--- 
+
+# Programm style
+
+
+Use an prosedural loop for the main file, with OOP for memory funktions, like this: 
+
+`# main-loop`
+`while True:`
+`  print("your turn")`
+`  messenge = input("You:")`
+`  if messenge == "Exit":`
+`    #exit the programm`
+`  else:`
+`    pass`
+`  context.update(messenge)`
+`  #all the other memory subsystems`
+`  answer = call_chat(messenge)`
+`  print(answer)`
+`  context.update(messenge)`
+
+### Explanation
+
+This is used because OOP allows to standartilise the usage of many memory systems in one for loop. 
+
+Although this is just my opinion, but it makes more sense to use Objekts in the memory systems, as to not mix backends. 
+
+Each memory system has a separate backend, wich is also why I desided to use OOP for those. It makes more sense, since its just easier to understand that there are for example 3 objekts, each a different memory subsystem, then to understand 6 get and update funktions. 
+Just makes more sense to me.
